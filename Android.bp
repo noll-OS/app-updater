@@ -10,21 +10,21 @@ android_app {
     platform_apis: true,
     privileged: true,
     required: [
-        "permissions_app.seamlessupdate.client.xml",
-        "whitelist_app.seamlessupdate.client.xml"
+        "etc_permissions_app.seamlessupdate.client.xml",
+        "etc_sysconfig_app.seamlessupdate.client.xml",
     ]
 }
 
 prebuilt_etc {
-    name: "permissions_app.seamlessupdate.client.xml",
+    name: "etc_permissions_app.seamlessupdate.client.xml",
+    src: "etc/permissions/app.seamlessupdate.client.xml",
     sub_dir: "permissions",
-    src: "permissions/app.seamlessupdate.client.xml",
     filename_from_src: true,
 }
 
 prebuilt_etc {
-    name: "whitelist_app.seamlessupdate.client.xml",
+    name: "etc_sysconfig_app.seamlessupdate.client.xml",
+    src: "etc/sysconfig/app.seamlessupdate.client.xml",
     sub_dir: "sysconfig",
-    src: "whitelist_app.seamlessupdate.client.xml",
     filename_from_src: true,
 }
