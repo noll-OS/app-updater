@@ -365,7 +365,7 @@ public class Service extends IntentService {
 
                 int bytesRead;
                 long last = System.nanoTime();
-                final byte[] buffer = new byte[8192];
+                final byte[] buffer = new byte[16384];
                 while ((bytesRead = input.read(buffer)) != -1) {
                     output.write(buffer, 0, bytesRead);
                     downloaded += bytesRead;
