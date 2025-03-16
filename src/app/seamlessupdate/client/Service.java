@@ -98,14 +98,15 @@ public class Service extends IntentService {
             public void onPayloadApplicationComplete(int errorCode) {
                 if (errorCode == ErrorCodeConstants.SUCCESS) {
                     Log.d(TAG, "onPayloadApplicationComplete success");
+                    UPDATE_PATH.delete();
                     annoyUser();
                 } else {
                     Log.d(TAG, "onPayloadApplicationComplete: " + errorCode);
+                    UPDATE_PATH.delete();
                     // error messages are not localized, Throwable#getMessage() is used elsewhere
                     notificationHandler.showFailureNotification("update_engine error code: " + errorCode);
                     mUpdating = false;
                 }
-                UPDATE_PATH.delete();
                 monitor.countDown();
             }
         });
