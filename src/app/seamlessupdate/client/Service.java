@@ -50,7 +50,9 @@ public class Service extends IntentService {
     private static final File CARE_MAP_PATH = new File("/data/ota_package/care_map.pb");
     private static final File UPDATE_PATH = new File("/data/ota_package/update.zip");
     private static final String PREFERENCE_DOWNLOAD_FILE = "download_file";
+    private static final String PREFERENCE_FAILED_INCREMENTAL = "failed_incremental";
     private static final int HTTP_RANGE_NOT_SATISFIABLE = 416;
+    private static final int UPDATE_ENGINE_DOWNLOAD_STATE_INITIALIZATION_ERROR = 20;
 
     private final ModernTLSSocketFactory tlsSocketFactory = new ModernTLSSocketFactory();
 
@@ -76,7 +78,8 @@ public class Service extends IntentService {
         return urlConnection;
     }
 
-    private void applyUpdate(final boolean streaming, final long payloadOffset, final String[] headerKeyValuePairs) {
+    private void applyUpdate(final boolean streaming, final long payloadOffset,
+            final String[] headerKeyValuePairs, final boolean incremental) {
         notificationHandler.showInstallNotification(0);
 
         final CountDownLatch monitor = new CountDownLatch(1);
@@ -105,6 +108,11 @@ public class Service extends IntentService {
                     UPDATE_PATH.delete();
                     // error messages are not localized, Throwable#getMessage() is used elsewhere
                     notificationHandler.showFailureNotification("update_engine error code: " + errorCode);
+                    if (incremental && errorCode == UPDATE_ENGINE_DOWNLOAD_STATE_INITIALIZATION_ERROR) {
+                        final SharedPreferences preferences = Settings.getPreferences(Service.this);
+                        final String downloadFile = preferences.getString(PREFERENCE_DOWNLOAD_FILE, null);
+                        preferences.edit().putString(PREFERENCE_FAILED_INCREMENTAL, downloadFile).commit();
+                    }
                     mUpdating = false;
                 }
                 monitor.countDown();
@@ -210,7 +218,7 @@ public class Service extends IntentService {
 
             final ZipEntry payloadProperties = getEntry(zipFile, "payload_properties.txt");
             final BufferedReader propertiesReader = new BufferedReader(new InputStreamReader(zipFile.getInputStream(payloadProperties)));
-            applyUpdate(streaming, payloadOffset, propertiesReader.lines().toArray(String[]::new));
+            applyUpdate(streaming, payloadOffset, propertiesReader.lines().toArray(String[]::new), sourceIncremental != null);
         } catch (GeneralSecurityException e) {
             UPDATE_PATH.delete();
             throw e;
@@ -331,18 +339,25 @@ public class Service extends IntentService {
             } else {
                 Files.deleteIfExists(UPDATE_PATH.toPath());
 
-                Log.d(TAG, "fetch incremental " + incrementalUpdate);
-                downloadFile = incrementalUpdate;
-                connection = fetchData(network, downloadFile);
-                if (connection.getResponseCode() == HTTP_NOT_FOUND) {
-                    final InputStream error = connection.getErrorStream();
-                    if (error != null) {
-                        error.close();
-                    }
-
-                    Log.d(TAG, "incremental not found, fetch full update " + fullUpdate);
+                final String failedIncremental = preferences.getString(PREFERENCE_FAILED_INCREMENTAL, null);
+                if (incrementalUpdate.equals(failedIncremental)) {
+                    Log.d(TAG, "incremental update initialization failed, fetch full update " + fullUpdate);
                     downloadFile = fullUpdate;
                     connection = fetchData(network, downloadFile);
+                } else {
+                    Log.d(TAG, "fetch incremental " + incrementalUpdate);
+                    downloadFile = incrementalUpdate;
+                    connection = fetchData(network, downloadFile);
+                    if (connection.getResponseCode() == HTTP_NOT_FOUND) {
+                        final InputStream error = connection.getErrorStream();
+                        if (error != null) {
+                            error.close();
+                        }
+
+                        Log.d(TAG, "incremental not found, fetch full update " + fullUpdate);
+                        downloadFile = fullUpdate;
+                        connection = fetchData(network, downloadFile);
+                    }
                 }
                 contentLength = connection.getContentLengthLong();
                 input = connection.getInputStream();
