@@ -154,9 +154,12 @@ public class Service extends IntentService {
                 Log.d(TAG, "verifyPackage: " + progress + "%");
                 notificationHandler.showVerifyNotification(progress);
             }, null);
+        } catch (final GeneralSecurityException e) {
+            UPDATE_PATH.delete();
+            throw e;
+        }
 
-            final ZipFile zipFile = new ZipFile(UPDATE_PATH);
-
+        try (final ZipFile zipFile = new ZipFile(UPDATE_PATH)) {
             final ZipEntry metadata = getEntry(zipFile, "META-INF/com/android/metadata");
             final BufferedReader reader = new BufferedReader(new InputStreamReader(zipFile.getInputStream(metadata)));
             String device = null;
@@ -223,7 +226,7 @@ public class Service extends IntentService {
             final ZipEntry payloadProperties = getEntry(zipFile, "payload_properties.txt");
             final BufferedReader propertiesReader = new BufferedReader(new InputStreamReader(zipFile.getInputStream(payloadProperties)));
             applyUpdate(streaming, payloadOffset, propertiesReader.lines().toArray(String[]::new), sourceIncremental != null);
-        } catch (GeneralSecurityException e) {
+        } catch (final GeneralSecurityException e) {
             UPDATE_PATH.delete();
             throw e;
         }
