@@ -147,7 +147,8 @@ public class Service extends IntentService {
         return entry;
     }
 
-    private void onDownloadFinished(final boolean streaming, final long targetBuildDate, final String channel) throws IOException, GeneralSecurityException {
+    private void onDownloadFinished(final boolean streaming, final long targetBuildDate,
+            final String targetIncremental, final String channel) throws IOException, GeneralSecurityException {
         try {
             notificationHandler.showVerifyNotification(0);
             RecoverySystem.verifyPackage(UPDATE_PATH, (int progress) -> {
@@ -163,6 +164,7 @@ public class Service extends IntentService {
             final ZipEntry metadata = getEntry(zipFile, "META-INF/com/android/metadata");
             final BufferedReader reader = new BufferedReader(new InputStreamReader(zipFile.getInputStream(metadata)));
             long timestamp = 0;
+            String incremental = null;
             String device = null;
             String serialno = null;
             String type = null;
@@ -173,6 +175,8 @@ public class Service extends IntentService {
                 final String[] pair = line.split("=");
                 if ("post-timestamp".equals(pair[0])) {
                     timestamp = Long.parseLong(pair[1]);
+                } else if ("post-build-incremental".equals(pair[0])) {
+                    incremental = pair[1];
                 } else if ("pre-device".equals(pair[0])) {
                     device = pair[1];
                 } else if ("serialno".equals(pair[0])) {
@@ -189,6 +193,9 @@ public class Service extends IntentService {
             }
             if (timestamp != targetBuildDate) {
                 throw new GeneralSecurityException("timestamp does not match server metadata");
+            }
+            if (!targetIncremental.equals(incremental)) {
+                throw new GeneralSecurityException("incremental does not match server metadata");
             }
             if (!DEVICE.equals(device)) {
                 throw new GeneralSecurityException("device mismatch");
@@ -325,7 +332,7 @@ public class Service extends IntentService {
                 final int responseCode = connection.getResponseCode();
                 if (responseCode == HTTP_RANGE_NOT_SATISFIABLE) {
                     Log.d(TAG, "download completed previously");
-                    onDownloadFinished(streaming, targetBuildDate, channel);
+                    onDownloadFinished(streaming, targetBuildDate, targetIncremental, channel);
                     return;
                 }
                 if (responseCode == HTTP_NOT_FOUND && incrementalUpdate.equals(downloadFile)) {
@@ -402,7 +409,7 @@ public class Service extends IntentService {
             }
 
             Log.d(TAG, "download completed");
-            onDownloadFinished(streaming, targetBuildDate, channel);
+            onDownloadFinished(streaming, targetBuildDate, targetIncremental, channel);
         } catch (GeneralSecurityException | IOException | ServiceSpecificException e) {
             Log.e(TAG, "failed to download and install update", e);
             notificationHandler.showFailureNotification(e.getMessage());
