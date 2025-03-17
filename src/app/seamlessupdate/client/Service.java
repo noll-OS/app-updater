@@ -33,6 +33,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.file.Files;
 import java.security.GeneralSecurityException;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.CountDownLatch;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
@@ -79,10 +80,11 @@ public class Service extends IntentService {
     }
 
     private void applyUpdate(final boolean streaming, final long payloadOffset,
-            final String[] headerKeyValuePairs, final boolean incremental) {
+            final String[] headerKeyValuePairs, final boolean incremental) throws IOException {
         notificationHandler.showInstallNotification(0);
 
         final CountDownLatch monitor = new CountDownLatch(1);
+        final AtomicInteger engineErrorCode = new AtomicInteger(ErrorCodeConstants.SUCCESS);
         final UpdateEngine engine = new UpdateEngine();
         engine.bind(new UpdateEngineCallback() {
             @Override
@@ -106,14 +108,12 @@ public class Service extends IntentService {
                 } else {
                     Log.d(TAG, "onPayloadApplicationComplete: " + errorCode);
                     UPDATE_PATH.delete();
-                    // error messages are not localized, Throwable#getMessage() is used elsewhere
-                    notificationHandler.showFailureNotification("update_engine error code: " + errorCode);
+                    engineErrorCode.set(errorCode);
                     if (incremental && errorCode == UPDATE_ENGINE_DOWNLOAD_STATE_INITIALIZATION_ERROR) {
                         final SharedPreferences preferences = Settings.getPreferences(Service.this);
                         final String downloadFile = preferences.getString(PREFERENCE_DOWNLOAD_FILE, null);
                         preferences.edit().putString(PREFERENCE_FAILED_INCREMENTAL, downloadFile).commit();
                     }
-                    mUpdating = false;
                 }
                 monitor.countDown();
             }
@@ -132,6 +132,10 @@ public class Service extends IntentService {
 
         if (!engine.unbind()) {
             Log.e(TAG, "unable to unbind update_engine");
+        }
+
+        if (engineErrorCode.get() != ErrorCodeConstants.SUCCESS) {
+            throw new IOException("update_engine error code: " + engineErrorCode);
         }
     }
 
