@@ -162,21 +162,21 @@ public class Service extends IntentService {
         try (final ZipFile zipFile = new ZipFile(UPDATE_PATH)) {
             final ZipEntry metadata = getEntry(zipFile, "META-INF/com/android/metadata");
             final BufferedReader reader = new BufferedReader(new InputStreamReader(zipFile.getInputStream(metadata)));
+            long timestamp = 0;
             String device = null;
             String serialno = null;
             String type = null;
+            String streamingPropertyFiles[] = null;
             String sourceIncremental = null;
             String sourceFingerprint = null;
-            String streamingPropertyFiles[] = null;
-            long timestamp = 0;
             for (String line; (line = reader.readLine()) != null; ) {
                 final String[] pair = line.split("=");
                 if ("post-timestamp".equals(pair[0])) {
                     timestamp = Long.parseLong(pair[1]);
-                } else if ("serialno".equals(pair[0])) {
-                    serialno = pair[1];
                 } else if ("pre-device".equals(pair[0])) {
                     device = pair[1];
+                } else if ("serialno".equals(pair[0])) {
+                    serialno = pair[1];
                 } else if ("ota-type".equals(pair[0])) {
                     type = pair[1];
                 } else if ("ota-streaming-property-files".equals(pair[0])) {
