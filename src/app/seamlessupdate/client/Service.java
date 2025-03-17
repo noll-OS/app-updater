@@ -241,7 +241,7 @@ public class Service extends IntentService {
 
         final Network network = intent.getParcelableExtra(INTENT_EXTRA_NETWORK, Network.class);
         final var serviceIsUserInitiated = intent.getBooleanExtra(INTENT_EXTRA_IS_USER_INITIATED, false);
-        if (serviceIsUserInitiated) Log.d(TAG, "onHandeIntent() – service is user-initiated");
+        if (serviceIsUserInitiated) Log.d(TAG, "onHandleIntent() – service is user-initiated");
 
         final PowerManager pm = getSystemService(PowerManager.class);
         final WakeLock wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Updater:" + TAG);
