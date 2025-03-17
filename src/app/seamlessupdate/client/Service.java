@@ -213,12 +213,16 @@ public class Service extends IntentService {
                 throw new GeneralSecurityException("source fingerprint mismatch");
             }
 
-            long payloadOffset = 0;
+            Long payloadOffset = null;
             for (final String streamingPropertyFile : streamingPropertyFiles) {
                 final String properties[] = streamingPropertyFile.split(":");
                 if ("payload.bin".equals(properties[0])) {
                     payloadOffset = Long.parseLong(properties[1]);
+                    break;
                 }
+            }
+            if (payloadOffset == null) {
+                throw new GeneralSecurityException("payload offset missing");
             }
 
             Files.deleteIfExists(CARE_MAP_PATH.toPath());
