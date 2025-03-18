@@ -162,7 +162,6 @@ public class Service extends IntentService {
 
         try (final ZipFile zipFile = new ZipFile(UPDATE_PATH)) {
             final ZipEntry metadata = getEntry(zipFile, "META-INF/com/android/metadata");
-            final BufferedReader reader = new BufferedReader(new InputStreamReader(zipFile.getInputStream(metadata)));
             long timestamp = 0;
             String incremental = null;
             String device = null;
@@ -171,24 +170,26 @@ public class Service extends IntentService {
             String streamingPropertyFiles[] = null;
             String sourceIncremental = null;
             String sourceFingerprint = null;
-            for (String line; (line = reader.readLine()) != null; ) {
-                final String[] pair = line.split("=");
-                if ("post-timestamp".equals(pair[0])) {
-                    timestamp = Long.parseLong(pair[1]);
-                } else if ("post-build-incremental".equals(pair[0])) {
-                    incremental = pair[1];
-                } else if ("pre-device".equals(pair[0])) {
-                    device = pair[1];
-                } else if ("serialno".equals(pair[0])) {
-                    serialno = pair[1];
-                } else if ("ota-type".equals(pair[0])) {
-                    type = pair[1];
-                } else if ("ota-streaming-property-files".equals(pair[0])) {
-                    streamingPropertyFiles = pair[1].trim().split(",");
-                } else if ("pre-build-incremental".equals(pair[0])) {
-                    sourceIncremental = pair[1];
-                } else if ("pre-build".equals(pair[0])) {
-                    sourceFingerprint = pair[1];
+            try (final var reader = new BufferedReader(new InputStreamReader(zipFile.getInputStream(metadata)))) {
+                for (String line; (line = reader.readLine()) != null; ) {
+                    final String[] pair = line.split("=");
+                    if ("post-timestamp".equals(pair[0])) {
+                        timestamp = Long.parseLong(pair[1]);
+                    } else if ("post-build-incremental".equals(pair[0])) {
+                        incremental = pair[1];
+                    } else if ("pre-device".equals(pair[0])) {
+                        device = pair[1];
+                    } else if ("serialno".equals(pair[0])) {
+                        serialno = pair[1];
+                    } else if ("ota-type".equals(pair[0])) {
+                        type = pair[1];
+                    } else if ("ota-streaming-property-files".equals(pair[0])) {
+                        streamingPropertyFiles = pair[1].trim().split(",");
+                    } else if ("pre-build-incremental".equals(pair[0])) {
+                        sourceIncremental = pair[1];
+                    } else if ("pre-build".equals(pair[0])) {
+                        sourceFingerprint = pair[1];
+                    }
                 }
             }
             if (timestamp != targetBuildDate) {
@@ -234,9 +235,12 @@ public class Service extends IntentService {
                 CARE_MAP_PATH.setReadable(true, false);
             }
 
+            final String[] headerKeyValuePairs;
             final ZipEntry payloadProperties = getEntry(zipFile, "payload_properties.txt");
-            final BufferedReader propertiesReader = new BufferedReader(new InputStreamReader(zipFile.getInputStream(payloadProperties)));
-            applyUpdate(streaming, payloadOffset, propertiesReader.lines().toArray(String[]::new), sourceIncremental != null);
+            try (final var propertiesReader = new BufferedReader(new InputStreamReader(zipFile.getInputStream(payloadProperties)))) {
+                headerKeyValuePairs = propertiesReader.lines().toArray(String[]::new);
+            }
+            applyUpdate(streaming, payloadOffset, headerKeyValuePairs, sourceIncremental != null);
         } catch (final GeneralSecurityException e) {
             UPDATE_PATH.delete();
             throw e;
