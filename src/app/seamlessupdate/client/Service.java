@@ -33,7 +33,6 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.file.Files;
 import java.security.GeneralSecurityException;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.CountDownLatch;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
@@ -84,9 +83,10 @@ public class Service extends IntentService {
         notificationHandler.showInstallNotification(0);
 
         final CountDownLatch monitor = new CountDownLatch(1);
-        final AtomicInteger engineErrorCode = new AtomicInteger(ErrorCodeConstants.SUCCESS);
         final UpdateEngine engine = new UpdateEngine();
-        engine.bind(new UpdateEngineCallback() {
+        final var callback = new UpdateEngineCallback() {
+            Integer errorCode = null;
+
             @Override
             public void onStatusUpdate(int status, float percent) {
                 Log.d(TAG, "onStatusUpdate: " + status + ", " + percent * 100 + "%");
@@ -100,15 +100,14 @@ public class Service extends IntentService {
             }
 
             @Override
-            public void onPayloadApplicationComplete(int errorCode) {
+            public void onPayloadApplicationComplete(final int errorCode) {
+                Log.d(TAG, "onPayloadApplicationComplete: " + errorCode);
+                this.errorCode = errorCode;
                 if (errorCode == ErrorCodeConstants.SUCCESS) {
-                    Log.d(TAG, "onPayloadApplicationComplete success");
                     UPDATE_PATH.delete();
                     annoyUser();
                 } else {
-                    Log.d(TAG, "onPayloadApplicationComplete: " + errorCode);
                     UPDATE_PATH.delete();
-                    engineErrorCode.set(errorCode);
                     if (incremental && errorCode == UPDATE_ENGINE_DOWNLOAD_STATE_INITIALIZATION_ERROR) {
                         final SharedPreferences preferences = Settings.getPreferences(Service.this);
                         final String downloadFile = preferences.getString(PREFERENCE_DOWNLOAD_FILE, null);
@@ -117,7 +116,8 @@ public class Service extends IntentService {
                 }
                 monitor.countDown();
             }
-        });
+        };
+        engine.bind(callback);
         if (streaming) {
             final SharedPreferences preferences = Settings.getPreferences(this);
             final String downloadFile = preferences.getString(PREFERENCE_DOWNLOAD_FILE.replace("-streaming", ""), null);
@@ -134,8 +134,8 @@ public class Service extends IntentService {
             Log.e(TAG, "unable to unbind update_engine");
         }
 
-        if (engineErrorCode.get() != ErrorCodeConstants.SUCCESS) {
-            throw new IOException("update_engine error code: " + engineErrorCode);
+        if (callback.errorCode != null && callback.errorCode != ErrorCodeConstants.SUCCESS) {
+            throw new IOException("update_engine error code: " + callback.errorCode);
         }
     }
 
