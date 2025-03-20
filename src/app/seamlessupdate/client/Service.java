@@ -29,7 +29,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.file.Files;
 import java.security.GeneralSecurityException;
@@ -71,7 +70,7 @@ public class Service extends IntentService {
         notificationHandler = new NotificationHandler(this);
     }
 
-    private HttpURLConnection fetchData(final Network network, final String path) throws IOException {
+    private HttpsURLConnection fetchData(final Network network, final String path) throws IOException {
         final URL url = new URL(getString(R.string.url) + path);
         final HttpsURLConnection urlConnection = (HttpsURLConnection) network.openConnection(url);
         urlConnection.setSSLSocketFactory(tlsSocketFactory);
@@ -269,7 +268,7 @@ public class Service extends IntentService {
 
         final PowerManager pm = getSystemService(PowerManager.class);
         final WakeLock wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Updater:" + TAG);
-        HttpURLConnection connection = null;
+        HttpsURLConnection connection = null;
         InputStream input = null;
         try {
             wakeLock.acquire();
