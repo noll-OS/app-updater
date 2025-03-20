@@ -41,6 +41,8 @@ import javax.net.ssl.HttpsURLConnection;
 
 import libcore.io.IoUtils;
 
+import org.grapheneos.tls.ModernTLSSocketFactory;
+
 public class Service extends IntentService {
     private static final String TAG = "Service";
     static final String INTENT_EXTRA_NETWORK = "network";

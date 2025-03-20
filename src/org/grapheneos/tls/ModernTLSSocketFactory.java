@@ -1,4 +1,4 @@
-package app.seamlessupdate.client;
+package org.grapheneos.tls;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -73,4 +73,3 @@ public class ModernTLSSocketFactory extends SSLSocketFactory {
         return socket;
     }
 }
-
