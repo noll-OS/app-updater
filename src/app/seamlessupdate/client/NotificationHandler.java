@@ -44,20 +44,27 @@ public class NotificationHandler {
 
         final List<NotificationChannel> channels = new ArrayList<>();
 
-        channels.add(new NotificationChannel(NOTIFICATION_CHANNEL_ID_PROGRESS,
-                service.getString(R.string.notification_channel_progress), IMPORTANCE_LOW));
+        final NotificationChannel progress = new NotificationChannel(NOTIFICATION_CHANNEL_ID_PROGRESS,
+                service.getString(R.string.notification_channel_progress), IMPORTANCE_LOW);
+        progress.setBlockable(true);
+        channels.add(progress);
 
         final NotificationChannel reboot = new NotificationChannel(NOTIFICATION_CHANNEL_ID_REBOOT,
                 service.getString(R.string.notification_channel_reboot), IMPORTANCE_HIGH);
         reboot.enableLights(true);
         reboot.enableVibration(true);
+        reboot.setBlockable(false);
         channels.add(reboot);
 
-        channels.add(new NotificationChannel(NOTIFICATION_CHANNEL_ID_FAILURE,
-                service.getString(R.string.notification_channel_failure), IMPORTANCE_LOW));
+        final NotificationChannel failure = new NotificationChannel(NOTIFICATION_CHANNEL_ID_FAILURE,
+                service.getString(R.string.notification_channel_failure), IMPORTANCE_LOW);
+        failure.setBlockable(true);
+        channels.add(failure);
 
-        channels.add(new NotificationChannel(NOTIFICATION_CHANNEL_ID_UPDATED,
-                service.getString(R.string.notification_channel_updated), IMPORTANCE_MIN));
+        final NotificationChannel updated = new NotificationChannel(NOTIFICATION_CHANNEL_ID_UPDATED,
+                service.getString(R.string.notification_channel_updated), IMPORTANCE_MIN);
+        updated.setBlockable(true);
+        channels.add(updated);
 
         notificationManager.createNotificationChannels(channels);
     }
