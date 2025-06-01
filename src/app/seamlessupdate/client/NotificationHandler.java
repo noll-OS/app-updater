@@ -56,8 +56,10 @@ public class NotificationHandler {
         channels.add(new NotificationChannel(NOTIFICATION_CHANNEL_ID_FAILURE,
                 service.getString(R.string.notification_channel_failure), IMPORTANCE_LOW));
 
-        channels.add(new NotificationChannel(NOTIFICATION_CHANNEL_ID_UPDATED,
-                service.getString(R.string.notification_channel_updated), IMPORTANCE_MIN));
+        final NotificationChannel updated = new NotificationChannel(NOTIFICATION_CHANNEL_ID_UPDATED,
+                service.getString(R.string.notification_channel_updated), IMPORTANCE_MIN);
+        updated.setShowBadge(false);
+        channels.add(updated);
 
         notificationManager.createNotificationChannels(channels);
     }
