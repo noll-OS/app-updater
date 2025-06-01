@@ -40,7 +40,7 @@ public class NotificationHandler {
 
     NotificationHandler(Service service) {
         this.service = service;
-        this.notificationManager = service.getSystemService(NotificationManager.class);
+        notificationManager = service.getSystemService(NotificationManager.class);
 
         final List<NotificationChannel> channels = new ArrayList<>();
 
