@@ -18,6 +18,13 @@
                 app:entryValues="@array/channel_values"
                 app:defaultValue="@string/channel_default" />
 
+        <SwitchPreference app:key="use_security_preview_channel"
+                app:persistent="false"
+                app:title="@string/use_security_preview_channel_title"
+                app:summaryOn="@string/use_security_preview_channel_summary_on"
+                app:summaryOff="@string/use_security_preview_channel_summary_off"
+                app:iconSpaceReserved="false" />
+
         <ListPreference app:key="network_type"
                 app:persistent="false"
                 app:title="@string/network_type_title"
