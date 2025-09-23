@@ -19,6 +19,8 @@ import androidx.preference.ListPreference;
 
 import com.android.settingslib.collapsingtoolbar.CollapsingToolbarBaseActivity;
 
+import static java.util.Objects.requireNonNull;
+
 public class Settings extends CollapsingToolbarBaseActivity {
     private static final String KEY_CHANNEL = "channel";
     private static final String KEY_NETWORK_TYPE = "network_type";
@@ -88,7 +90,7 @@ public class Settings extends CollapsingToolbarBaseActivity {
             getPreferenceManager().setStorageDeviceProtected();
             setPreferencesFromResource(R.xml.settings, rootKey);
 
-            Preference.OnPreferenceClickListener clickListener = preference -> {
+            requirePreference(KEY_CHECK_FOR_UPDATES).setOnPreferenceClickListener(pref -> {
                 final Context context = requireContext();
                 if (!getPreferences(context).getBoolean(KEY_WAITING_FOR_REBOOT, false)) {
                     final ConnectivityManager connectivityManager = context.getSystemService(ConnectivityManager.class);
@@ -102,24 +104,16 @@ public class Settings extends CollapsingToolbarBaseActivity {
                     context.startForegroundService(intent);
                 }
                 return true;
-            };
-            final Preference checkForUpdates = findPreference(KEY_CHECK_FOR_UPDATES);
-            if (checkForUpdates != null) {
-                checkForUpdates.setOnPreferenceClickListener(clickListener);
-            }
+            });
 
-            Preference.OnPreferenceChangeListener changeListener = (preference, newValue) -> {
+            requirePreference(KEY_NETWORK_TYPE).setOnPreferenceChangeListener((pref, newValue) -> {
                 final int value = Integer.parseInt((String) newValue);
                 getPreferences(requireContext()).edit().putInt(KEY_NETWORK_TYPE, value).apply();
                 if (!getPreferences(requireContext()).getBoolean(KEY_WAITING_FOR_REBOOT, false)) {
                     PeriodicJob.schedule(requireContext());
                 }
                 return true;
-            };
-            final Preference networkType = findPreference(KEY_NETWORK_TYPE);
-            if (networkType != null) {
-                networkType.setOnPreferenceChangeListener(changeListener);
-            }
+            });
         }
 
         @Override
@@ -152,6 +146,10 @@ public class Settings extends CollapsingToolbarBaseActivity {
         public void onPause() {
             super.onPause();
             getPreferenceManager().getSharedPreferences().unregisterOnSharedPreferenceChangeListener(this);
+        }
+
+        private <T extends Preference> T requirePreference(String key) {
+            return requireNonNull(findPreference(key));
         }
     }
 }
