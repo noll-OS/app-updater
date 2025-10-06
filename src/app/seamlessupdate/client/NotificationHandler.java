@@ -1,11 +1,11 @@
 package app.seamlessupdate.client;
 
 import android.annotation.NonNull;
+import android.app.Application;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
-import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.drawable.Icon;
@@ -14,6 +14,7 @@ import android.text.Spanned;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import static android.app.NotificationManager.IMPORTANCE_HIGH;
 import static android.app.NotificationManager.IMPORTANCE_LOW;
@@ -28,7 +29,8 @@ public class NotificationHandler {
     private static final int NOTIFICATION_ID_REBOOT = 2;
     private static final int NOTIFICATION_ID_FAILURE = 3;
     private static final int NOTIFICATION_ID_UPDATED = 4;
-    private static final int NOTIFICATION_ID_SET_SECURITY_PREVIEW = 5;
+    private static final int MAX_NOTIFICATION_ID_FOR_SERVICE = NOTIFICATION_ID_UPDATED;
+    private static final int NOTIFICATION_ID_SET_SECURITY_PREVIEW = 1000;
     private static final String NOTIFICATION_CHANNEL_ID_PROGRESS = "progress";
     private static final String NOTIFICATION_CHANNEL_ID_REBOOT = "updates2";
     private static final String NOTIFICATION_CHANNEL_ID_FAILURE = "failure";
@@ -46,28 +48,31 @@ public class NotificationHandler {
     NotificationHandler(Service service) {
         this.service = service;
         notificationManager = service.getSystemService(NotificationManager.class);
+    }
 
+    static void createNotificationChannels(Context context) {
+        var notificationManager = context.getSystemService(NotificationManager.class);
         final List<NotificationChannel> channels = new ArrayList<>();
 
         channels.add(new NotificationChannel(NOTIFICATION_CHANNEL_ID_PROGRESS,
-                service.getString(R.string.notification_channel_progress), IMPORTANCE_LOW));
+                context.getString(R.string.notification_channel_progress), IMPORTANCE_LOW));
 
         final NotificationChannel reboot = new NotificationChannel(NOTIFICATION_CHANNEL_ID_REBOOT,
-                service.getString(R.string.notification_channel_reboot), IMPORTANCE_HIGH);
+                context.getString(R.string.notification_channel_reboot), IMPORTANCE_HIGH);
         reboot.enableLights(true);
         reboot.enableVibration(true);
         channels.add(reboot);
 
         channels.add(new NotificationChannel(NOTIFICATION_CHANNEL_ID_FAILURE,
-                service.getString(R.string.notification_channel_failure), IMPORTANCE_LOW));
+                context.getString(R.string.notification_channel_failure), IMPORTANCE_LOW));
 
         final NotificationChannel updated = new NotificationChannel(NOTIFICATION_CHANNEL_ID_UPDATED,
-                service.getString(R.string.notification_channel_updated), IMPORTANCE_MIN);
+                context.getString(R.string.notification_channel_updated), IMPORTANCE_MIN);
         updated.setShowBadge(false);
         channels.add(updated);
 
         final NotificationChannel setSecurityPreview = new NotificationChannel(NOTIFICATION_CHANNEL_ID_SET_SECURITY_PREVIEW,
-                service.getString(R.string.notification_channel_set_security_preview), IMPORTANCE_HIGH);
+                context.getString(R.string.notification_channel_set_security_preview), IMPORTANCE_HIGH);
         setSecurityPreview.setShowBadge(false);
         channels.add(setSecurityPreview);
 
@@ -95,8 +100,13 @@ public class NotificationHandler {
 
     void start() {
         phase = Phase.CHECK;
-        notificationManager.cancelAll();
-        service.startForeground(NOTIFICATION_ID_PROGRESS, new Notification.Builder(service, NOTIFICATION_CHANNEL_ID_PROGRESS)
+
+        // Avoid cancelling persistent security settings preview notification
+        for (int id = 1; id <= MAX_NOTIFICATION_ID_FOR_SERVICE; id++) {
+            notificationManager.cancel(id);
+        }
+
+        service.startForeground(NOTIFICATION_ID_PROGRESS, new Notification.Builder(this.service, NOTIFICATION_CHANNEL_ID_PROGRESS)
                 .setContentIntent(getPendingSettingsIntent())
                 .setContentTitle(service.getString(R.string.notification_check_title))
                 .setForegroundServiceBehavior(Notification.FOREGROUND_SERVICE_DEFERRED)
@@ -223,10 +233,11 @@ public class NotificationHandler {
     }
 
     static void showSetSecurityPreviewNotification(@NonNull Context context) {
+        final var notificationManager = context.getSystemService(NotificationManager.class);
         final int titleResId = R.string.notification_set_security_preview_title;
         final int contentResId = R.string.notification_set_security_preview_text;
-        final var notificationManager = context.getSystemService(NotificationManager.class);
-        notificationManager.notify(NOTIFICATION_ID_SET_SECURITY_PREVIEW, new Notification.Builder(context, NOTIFICATION_CHANNEL_ID_SET_SECURITY_PREVIEW)
+        notificationManager.notify(NOTIFICATION_ID_SET_SECURITY_PREVIEW, new Notification.Builder(
+                context, NOTIFICATION_CHANNEL_ID_SET_SECURITY_PREVIEW)
                 .setContentIntent(getPendingSecurityPreviewSettingsIntent(context))
                 .setContentTitle(context.getString(titleResId))
                 .setContentText(context.getString(contentResId))
