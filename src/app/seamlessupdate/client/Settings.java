@@ -24,7 +24,7 @@ import static java.util.Objects.requireNonNull;
 
 public class Settings extends CollapsingToolbarBaseActivity {
     private static final String KEY_CHANNEL = "channel";
-    private static final String KEY_USE_SECURITY_PREVIEW_CHANNEL = "use_security_preview_channel";
+    static final String KEY_USE_SECURITY_PREVIEW_CHANNEL = "use_security_preview_channel";
     private static final String KEY_NETWORK_TYPE = "network_type";
     private static final String KEY_BATTERY_NOT_LOW = "battery_not_low";
     private static final String KEY_REQUIRES_CHARGING = "requires_charging";
@@ -134,10 +134,7 @@ public class Settings extends CollapsingToolbarBaseActivity {
                 return true;
             });
 
-            final SwitchPreference useSecurityPreviewChannel =
-                    requirePreference(KEY_USE_SECURITY_PREVIEW_CHANNEL);
-            useSecurityPreviewChannel.setChecked(shouldUseSecurityPreviewChannel(requireContext()));
-            useSecurityPreviewChannel.setOnPreferenceChangeListener((pref, newValue) -> {
+            updateAndReturnSecurityPreviewPreference().setOnPreferenceChangeListener((pref, newValue) -> {
                 // This preference is intentionally marked as persistent=false in XML to avoid
                 // automatic clobbering of the default value. Handle persistence manually.
                 Context context = requireContext();
@@ -149,9 +146,18 @@ public class Settings extends CollapsingToolbarBaseActivity {
                     if (!prefs.getBoolean(KEY_WAITING_FOR_REBOOT, false)) {
                         PeriodicJob.schedule(requireContext());
                     }
+                    NotificationHandler.cancelSetSecurityPreviewNotification(requireContext());
                 }
                 return res;
             });
+        }
+
+        private SwitchPreference updateAndReturnSecurityPreviewPreference() {
+            final SwitchPreference useSecurityPreviewChannel =
+                    requirePreference(KEY_USE_SECURITY_PREVIEW_CHANNEL);
+            final boolean newChecked = shouldUseSecurityPreviewChannel(requireContext());
+            useSecurityPreviewChannel.setChecked(newChecked);
+            return useSecurityPreviewChannel;
         }
 
         @Override
@@ -178,6 +184,9 @@ public class Settings extends CollapsingToolbarBaseActivity {
             getPreferenceManager().getSharedPreferences().registerOnSharedPreferenceChangeListener(this);
             final ListPreference networkType = (ListPreference) findPreference(KEY_NETWORK_TYPE);
             networkType.setValue(Integer.toString(getNetworkType(requireContext())));
+            // User can open updater settings and then open security preview settings from the
+            // notification.
+            updateAndReturnSecurityPreviewPreference();
         }
 
         @Override

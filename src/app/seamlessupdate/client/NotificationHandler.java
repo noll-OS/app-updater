@@ -1,10 +1,12 @@
 package app.seamlessupdate.client;
 
+import android.annotation.NonNull;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.drawable.Icon;
 import android.text.Html;
@@ -26,12 +28,15 @@ public class NotificationHandler {
     private static final int NOTIFICATION_ID_REBOOT = 2;
     private static final int NOTIFICATION_ID_FAILURE = 3;
     private static final int NOTIFICATION_ID_UPDATED = 4;
+    private static final int NOTIFICATION_ID_SET_SECURITY_PREVIEW = 5;
     private static final String NOTIFICATION_CHANNEL_ID_PROGRESS = "progress";
     private static final String NOTIFICATION_CHANNEL_ID_REBOOT = "updates2";
     private static final String NOTIFICATION_CHANNEL_ID_FAILURE = "failure";
     private static final String NOTIFICATION_CHANNEL_ID_UPDATED = "updated";
+    private static final String NOTIFICATION_CHANNEL_ID_SET_SECURITY_PREVIEW = "set_security_preview";
     private static final int PENDING_REBOOT_ID = 1;
     private static final int PENDING_SETTINGS_ID = 2;
+    private static final int PENDING_SECURITY_PREVIEW_SETTINGS_ID = 3;
 
     private final Service service;
     private final NotificationManager notificationManager;
@@ -60,6 +65,11 @@ public class NotificationHandler {
                 service.getString(R.string.notification_channel_updated), IMPORTANCE_MIN);
         updated.setShowBadge(false);
         channels.add(updated);
+
+        final NotificationChannel setSecurityPreview = new NotificationChannel(NOTIFICATION_CHANNEL_ID_SET_SECURITY_PREVIEW,
+                service.getString(R.string.notification_channel_set_security_preview), IMPORTANCE_HIGH);
+        setSecurityPreview.setShowBadge(false);
+        channels.add(setSecurityPreview);
 
         notificationManager.createNotificationChannels(channels);
     }
@@ -210,5 +220,29 @@ public class NotificationHandler {
     private PendingIntent getPendingSettingsIntent() {
         return PendingIntent.getActivity(service, PENDING_SETTINGS_ID, new Intent(service,
                 Settings.class), PendingIntent.FLAG_IMMUTABLE);
+    }
+
+    static void showSetSecurityPreviewNotification(@NonNull Context context) {
+        final int titleResId = R.string.notification_set_security_preview_title;
+        final int contentResId = R.string.notification_set_security_preview_text;
+        final var notificationManager = context.getSystemService(NotificationManager.class);
+        notificationManager.notify(NOTIFICATION_ID_SET_SECURITY_PREVIEW, new Notification.Builder(context, NOTIFICATION_CHANNEL_ID_SET_SECURITY_PREVIEW)
+                .setContentIntent(getPendingSecurityPreviewSettingsIntent(context))
+                .setContentTitle(context.getString(titleResId))
+                .setContentText(context.getString(contentResId))
+                .setOngoing(true)
+                .setShowWhen(true)
+                .setSmallIcon(R.drawable.security_update_warning_fill0_wght400_grad0_opsz48)
+                .build());
+    }
+
+    static void cancelSetSecurityPreviewNotification(@NonNull Context context) {
+        final var notificationManager = context.getSystemService(NotificationManager.class);
+        notificationManager.cancel(NOTIFICATION_ID_SET_SECURITY_PREVIEW);
+    }
+
+    private static PendingIntent getPendingSecurityPreviewSettingsIntent(Context context) {
+        return PendingIntent.getActivity(context, PENDING_SECURITY_PREVIEW_SETTINGS_ID,
+                new Intent(context, SecurityPreviewSettings.class), PendingIntent.FLAG_IMMUTABLE);
     }
 }

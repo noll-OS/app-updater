@@ -6,6 +6,8 @@ android_app {
         "androidx.appcompat_appcompat",
         "androidx.preference_preference",
         "SettingsLibCollapsingToolbarBaseActivity",
+        "setupcompat",
+        "setupdesign",
     ],
     platform_apis: true,
     privileged: true,
