@@ -9,6 +9,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.res.Resources;
+import android.content.res.TypedArray;
 import android.os.Bundle;
 import android.os.UserManager;
 import android.util.Log;
@@ -23,6 +24,10 @@ import androidx.fragment.app.FragmentActivity;
 import androidx.preference.CheckBoxPreference;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
+import androidx.preference.PreferenceGroup;
+import androidx.preference.PreferenceGroupAdapter;
+import androidx.preference.PreferenceScreen;
+import androidx.preference.PreferenceViewHolder;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.setupcompat.template.FooterBarMixin;
@@ -48,8 +53,6 @@ public class SecurityPreviewSettings extends FragmentActivity {
             TransitionHelper.applyForwardTransition(this);
             TransitionHelper.applyBackwardTransition(this);
         }
-
-        // TODO: Fix the padding with CheckBoxPreference. Text is visibly too wide
 
         UserManager userManager = (UserManager) getSystemService(USER_SERVICE);
         if (!userManager.isSystemUser()) {
@@ -92,6 +95,36 @@ public class SecurityPreviewSettings extends FragmentActivity {
                 @NonNull ViewGroup parent, @Nullable Bundle savedInstanceState) {
             GlifPreferenceLayout layout = (GlifPreferenceLayout) parent;
             return layout.onCreateRecyclerView(inflater, parent, savedInstanceState);
+        }
+
+        @NonNull
+        @Override
+        protected RecyclerView.Adapter<?> onCreateAdapter(@NonNull PreferenceScreen preferenceScreen) {
+            return new RV(preferenceScreen);
+        }
+
+        // Fix padding issue between the Glif header and the individual;
+        // could subclass com.android.settingslib.widget.SettingsPreferenceGroupAdapter for
+        // expressive in 16qpr1? but padding still looked weird
+        static class RV extends PreferenceGroupAdapter {
+            public RV(@NonNull PreferenceGroup preferenceGroup) {
+                super(preferenceGroup);
+            }
+
+            @Override
+            public void onBindViewHolder(@NonNull PreferenceViewHolder holder, int position) {
+                super.onBindViewHolder(holder, position);
+                View view = holder.itemView;
+                Context context = view.getContext();
+                try (TypedArray a = context.obtainStyledAttributes(
+                        new int[]{R.attr.sudMarginStart, R.attr.sudMarginEnd}
+                )) {
+                    int layoutStart = a.getDimensionPixelSize(0, view.getPaddingStart());
+                    int layoutEnd = a.getDimensionPixelSize(1, view.getPaddingEnd());
+                    view.setPaddingRelative(
+                            layoutStart, view.getPaddingTop(), layoutEnd, view.getPaddingBottom());
+                }
+            }
         }
 
         @Override
