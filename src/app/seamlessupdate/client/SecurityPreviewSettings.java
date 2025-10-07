@@ -9,31 +9,25 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.res.Resources;
-import android.content.res.TypedArray;
 import android.os.Bundle;
 import android.os.UserManager;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.CheckBox;
+import android.widget.LinearLayout;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
-import androidx.preference.CheckBoxPreference;
-import androidx.preference.Preference;
-import androidx.preference.PreferenceFragmentCompat;
-import androidx.preference.PreferenceGroup;
-import androidx.preference.PreferenceGroupAdapter;
-import androidx.preference.PreferenceScreen;
-import androidx.preference.PreferenceViewHolder;
-import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.setupcompat.template.FooterBarMixin;
 import com.google.android.setupcompat.template.FooterButton;
 import com.google.android.setupcompat.util.WizardManagerHelper;
-import com.google.android.setupdesign.GlifPreferenceLayout;
+import com.google.android.setupdesign.GlifLayout;
 import com.google.android.setupdesign.transition.TransitionHelper;
 import com.google.android.setupdesign.util.ThemeHelper;
 
@@ -59,12 +53,7 @@ public class SecurityPreviewSettings extends FragmentActivity {
             throw new SecurityException("system user only");
         }
 
-        if (savedInstanceState == null) {
-            getSupportFragmentManager()
-                    .beginTransaction()
-                    .replace(android.R.id.content, new SettingsFragment())
-                    .commit();
-        }
+        setContentView(R.layout.security_preview_settings_activity);
     }
 
     @Override
@@ -73,7 +62,7 @@ public class SecurityPreviewSettings extends FragmentActivity {
         super.onApplyThemeResource(theme, resid, first);
     }
 
-    public static class SettingsFragment extends PreferenceFragmentCompat {
+    public static class SettingsFragment extends Fragment {
         private static final String TAG = "SecPreviewSettingsFrag";
         // set the preference to default to true, but not persisted immediately
         private static final boolean DEFAULT_SECURITY_PREVIEW_WHEN_UNSET = true;
@@ -91,40 +80,9 @@ public class SecurityPreviewSettings extends FragmentActivity {
 
         @NonNull
         @Override
-        public RecyclerView onCreateRecyclerView(@NonNull LayoutInflater inflater,
-                @NonNull ViewGroup parent, @Nullable Bundle savedInstanceState) {
-            GlifPreferenceLayout layout = (GlifPreferenceLayout) parent;
-            return layout.onCreateRecyclerView(inflater, parent, savedInstanceState);
-        }
-
-        @NonNull
-        @Override
-        protected RecyclerView.Adapter<?> onCreateAdapter(@NonNull PreferenceScreen preferenceScreen) {
-            return new RV(preferenceScreen);
-        }
-
-        // Fix padding issue between the Glif header and the individual;
-        // could subclass com.android.settingslib.widget.SettingsPreferenceGroupAdapter for
-        // expressive in 16qpr1? but padding still looked weird
-        static class RV extends PreferenceGroupAdapter {
-            public RV(@NonNull PreferenceGroup preferenceGroup) {
-                super(preferenceGroup);
-            }
-
-            @Override
-            public void onBindViewHolder(@NonNull PreferenceViewHolder holder, int position) {
-                super.onBindViewHolder(holder, position);
-                View view = holder.itemView;
-                Context context = view.getContext();
-                try (TypedArray a = context.obtainStyledAttributes(
-                        new int[]{R.attr.sudMarginStart, R.attr.sudMarginEnd}
-                )) {
-                    int layoutStart = a.getDimensionPixelSize(0, view.getPaddingStart());
-                    int layoutEnd = a.getDimensionPixelSize(1, view.getPaddingEnd());
-                    view.setPaddingRelative(
-                            layoutStart, view.getPaddingTop(), layoutEnd, view.getPaddingBottom());
-                }
-            }
+        public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
+                @Nullable Bundle savedInstanceState) {
+            return inflater.inflate(R.layout.security_preview_settings_fragment, container, false);
         }
 
         @Override
@@ -133,7 +91,7 @@ public class SecurityPreviewSettings extends FragmentActivity {
 
             final Activity activity = requireActivity();
 
-            GlifPreferenceLayout layout = (GlifPreferenceLayout) view;
+            GlifLayout layout = (GlifLayout) view;
 
             layout.setIcon(activity.getDrawable(R.drawable.ic_updater_glif));
             layout.setHeaderText(R.string.security_preview_settings_title);
@@ -149,6 +107,31 @@ public class SecurityPreviewSettings extends FragmentActivity {
                     .setListener(v -> onPrimaryAction())
                     .build();
             footer.setPrimaryButton(primary);
+
+            if (savedInstanceState != null) {
+                isUsingPreviewChannel = savedInstanceState.getBoolean(
+                        KEY_USE_SECURITY_PREVIEW_CHANNEL, DEFAULT_SECURITY_PREVIEW_WHEN_UNSET);
+            } else {
+                isUsingPreviewChannel = shouldUseSecurityPreviewChannel(requireContext());
+            }
+
+            final LinearLayout container =
+                    requireNonNull(layout.findViewById(R.id.enabled_container));
+            final CheckBox checkbox = requireNonNull(layout.findViewById(R.id.checkbox_enabled));
+
+            updateUi(checkbox);
+            container.setOnClickListener((v) -> {
+                isUsingPreviewChannel = !isUsingPreviewChannel;
+                updateUi(checkbox);
+            });
+            checkbox.setOnClickListener((v) -> {
+                isUsingPreviewChannel = !isUsingPreviewChannel;
+                updateUi(checkbox);
+            });
+        }
+
+        private void updateUi(CheckBox checkbox) {
+            checkbox.setChecked(isUsingPreviewChannel);
         }
 
         private void onPrimaryAction() {
@@ -174,34 +157,9 @@ public class SecurityPreviewSettings extends FragmentActivity {
         }
 
         @Override
-        public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
-            getPreferenceManager().setStorageDeviceProtected();
-            setPreferencesFromResource(R.xml.security_preview_settings, rootKey);
-
-            if (savedInstanceState != null) {
-                isUsingPreviewChannel = savedInstanceState.getBoolean(KEY_USE_SECURITY_PREVIEW_CHANNEL, true);
-            } else {
-                isUsingPreviewChannel = shouldUseSecurityPreviewChannel(requireContext());
-            }
-
-            final CheckBoxPreference useSecurityPreviewChannel =
-                    requirePreference(KEY_USE_SECURITY_PREVIEW_CHANNEL);
-            useSecurityPreviewChannel.setChecked(isUsingPreviewChannel);
-            useSecurityPreviewChannel.setOnPreferenceChangeListener((pref, newValue) -> {
-                // persistence is handled when user presses primary button
-                isUsingPreviewChannel = (boolean) newValue;
-                return true;
-            });
-        }
-
-        @Override
         public void onSaveInstanceState(@NonNull Bundle outState) {
             super.onSaveInstanceState(outState);
             outState.putBoolean(KEY_USE_SECURITY_PREVIEW_CHANNEL, isUsingPreviewChannel);
-        }
-
-        private <T extends Preference> T requirePreference(String key) {
-            return requireNonNull(findPreference(key));
         }
     }
 }
