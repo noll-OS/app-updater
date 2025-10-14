@@ -184,6 +184,7 @@ public class NotificationHandler {
                 .setContentText(service.getString(R.string.notification_reboot_text))
                 .setOngoing(true)
                 .setShowWhen(true)
+                .setTimeoutAfter(-1)
                 .setSmallIcon(R.drawable.system_update_fill0_wght400_grad0_opsz48)
                 .build());
     }
@@ -243,6 +244,7 @@ public class NotificationHandler {
                 .setContentText(context.getString(contentResId))
                 .setOngoing(true)
                 .setShowWhen(true)
+                .setTimeoutAfter(-1)
                 .setSmallIcon(R.drawable.security_update_warning_fill0_wght400_grad0_opsz48)
                 .build());
     }
