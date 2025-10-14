@@ -54,8 +54,11 @@ public class NotificationHandler {
         var notificationManager = context.getSystemService(NotificationManager.class);
         final List<NotificationChannel> channels = new ArrayList<>();
 
-        channels.add(new NotificationChannel(NOTIFICATION_CHANNEL_ID_PROGRESS,
-                context.getString(R.string.notification_channel_progress), IMPORTANCE_LOW));
+        // channels are unblockable by default with fixed notification permission
+        final NotificationChannel progress = new NotificationChannel(NOTIFICATION_CHANNEL_ID_PROGRESS,
+                context.getString(R.string.notification_channel_progress), IMPORTANCE_LOW);
+        progress.setBlockable(true);
+        channels.add(progress);
 
         final NotificationChannel reboot = new NotificationChannel(NOTIFICATION_CHANNEL_ID_REBOOT,
                 context.getString(R.string.notification_channel_reboot), IMPORTANCE_HIGH);
@@ -63,12 +66,15 @@ public class NotificationHandler {
         reboot.enableVibration(true);
         channels.add(reboot);
 
-        channels.add(new NotificationChannel(NOTIFICATION_CHANNEL_ID_FAILURE,
-                context.getString(R.string.notification_channel_failure), IMPORTANCE_LOW));
+        final NotificationChannel failure = new NotificationChannel(NOTIFICATION_CHANNEL_ID_FAILURE,
+                context.getString(R.string.notification_channel_failure), IMPORTANCE_LOW);
+        failure.setBlockable(true);
+        channels.add(failure);
 
         final NotificationChannel updated = new NotificationChannel(NOTIFICATION_CHANNEL_ID_UPDATED,
                 context.getString(R.string.notification_channel_updated), IMPORTANCE_MIN);
         updated.setShowBadge(false);
+        updated.setBlockable(true);
         channels.add(updated);
 
         final NotificationChannel setSecurityPreview = new NotificationChannel(NOTIFICATION_CHANNEL_ID_SET_SECURITY_PREVIEW,
