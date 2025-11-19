@@ -12,13 +12,13 @@ import android.view.MenuItem;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.PreferenceManager;
 import androidx.preference.Preference;
 import androidx.preference.ListPreference;
-import androidx.preference.SwitchPreference;
+import androidx.preference.TwoStatePreference;
 
 import com.android.settingslib.collapsingtoolbar.CollapsingToolbarBaseActivity;
+import com.android.settingslib.preference.PreferenceFragment;
 
 import static java.util.Objects.requireNonNull;
 
@@ -100,7 +100,7 @@ public class Settings extends CollapsingToolbarBaseActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    public static class SettingsFragment extends PreferenceFragmentCompat
+    public static class SettingsFragment extends PreferenceFragment
             implements SharedPreferences.OnSharedPreferenceChangeListener {
         private static String TAG = "SettingsFragment";
 
@@ -152,8 +152,8 @@ public class Settings extends CollapsingToolbarBaseActivity {
             });
         }
 
-        private SwitchPreference updateAndReturnSecurityPreviewPreference() {
-            final SwitchPreference useSecurityPreviewChannel =
+        private TwoStatePreference updateAndReturnSecurityPreviewPreference() {
+            final TwoStatePreference useSecurityPreviewChannel =
                     requirePreference(KEY_USE_SECURITY_PREVIEW_CHANNEL);
             final boolean newChecked = shouldUseSecurityPreviewChannel(requireContext());
             useSecurityPreviewChannel.setChecked(newChecked);
