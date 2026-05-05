@@ -121,8 +121,8 @@ public class Service extends IntentService {
         engine.bind(callback);
         if (streaming) {
             final SharedPreferences preferences = Settings.getPreferences(this);
-            final String downloadFile = preferences.getString(PREFERENCE_DOWNLOAD_FILE.replace("-streaming", ""), null);
-            engine.applyPayload(getString(R.string.url) + downloadFile, payloadOffset, 0, headerKeyValuePairs);
+            final String downloadFile = preferences.getString(PREFERENCE_DOWNLOAD_FILE, null);
+            engine.applyPayload(getString(R.string.url) + downloadFile.replace("-streaming", ""), payloadOffset, 0, headerKeyValuePairs);
         } else {
             UPDATE_PATH.setReadable(true, false);
             engine.applyPayload("file://" + UPDATE_PATH, payloadOffset, 0, headerKeyValuePairs);
