@@ -149,7 +149,7 @@ public class Service extends IntentService {
     }
 
     private void onDownloadFinished(final boolean streaming, final long targetBuildDate,
-            final String targetIncremental, final String channel) throws IOException, GeneralSecurityException {
+            final String targetIncremental) throws IOException, GeneralSecurityException {
         try {
             notificationHandler.showVerifyNotification(0);
             RecoverySystem.verifyPackage(UPDATE_PATH, (int progress) -> {
@@ -341,7 +341,7 @@ public class Service extends IntentService {
                 final int responseCode = connection.getResponseCode();
                 if (responseCode == HTTP_RANGE_NOT_SATISFIABLE) {
                     Log.d(TAG, "download completed previously");
-                    onDownloadFinished(streaming, targetBuildDate, targetIncremental, channel);
+                    onDownloadFinished(streaming, targetBuildDate, targetIncremental);
                     return;
                 }
                 if (responseCode == HTTP_NOT_FOUND && incrementalUpdate.equals(downloadFile)) {
@@ -418,7 +418,7 @@ public class Service extends IntentService {
             }
 
             Log.d(TAG, "download completed");
-            onDownloadFinished(streaming, targetBuildDate, targetIncremental, channel);
+            onDownloadFinished(streaming, targetBuildDate, targetIncremental);
         } catch (GeneralSecurityException | IOException | ServiceSpecificException e) {
             Log.e(TAG, "failed to download and install update", e);
             notificationHandler.showFailureNotification(e.getMessage());
